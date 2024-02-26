@@ -1,10 +1,10 @@
 {
-  "name": "cft-hq",
+  "name": "create-craftech",
   "version": "1.0.0",
   "description": "",
   "main": "./bin/createApp.js",
   "bin": {
-    "create-craftech@latest": "./bin/createApp.js"
+    "create-craftech": "./bin/createApp.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

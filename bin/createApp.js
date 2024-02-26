@@ -3,11 +3,13 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
+const axios = require('axios');
 
+// Define the GitHub repository URL for each template
 const templatesPath = {
-    react: "react",
-    node_express: "express",
-    react_electron:"electron"
+    react: "Craftech360-projects/cft-hq",
+    node_express: "Craftech360-projects/cft-hq",
+    electron: "Craftech360-projects/cft-hq"
 };
 
 const colors = ['\x1b[32m', '\x1b[31m', '\x1b[34m'];
@@ -15,7 +17,7 @@ const colors = ['\x1b[32m', '\x1b[31m', '\x1b[34m'];
 const templates = {
     react: "\x1b[91mReact Template\x1b[0m",
     node_express: "\x1b[32mNode.js with Express Template\x1b[0m",
-    react_electron:"\x1b[34melectron\x1b[0m"
+    electron: "\x1b[34mElectron Template\x1b[0m"
 };
 
 function displayTemplates(selectedIndex) {
@@ -53,14 +55,21 @@ interface.input.on('keypress', (str, key) => {
     } else if (key.name === 'return') {
         isReadlineClosed = true;
         const selectedTemplate = Object.keys(templates)[selectedIndex];
-        interface.question('\x1b[34mEnter a name for your project: \x1b[0m', (projectName) => {
-            const selectedTemplatePath = templatesPath[selectedTemplate];
+        interface.question('\x1b[34mEnter a name for your project: \x1b[0m', async (projectName) => {
+            const selectedTemplateRepo = templatesPath[selectedTemplate];
             const currentPath = process.cwd();
-            const templateFolderPath = path.join(currentPath, selectedTemplatePath);
             const projectPath = path.join(currentPath, projectName);
 
-            if (!fs.existsSync(templateFolderPath)) {
-                console.log(`\x1b[31mTemplate folder '${selectedTemplatePath}' not found.\x1b[0m`);
+            // Check if the template folder exists in the GitHub repository
+            try {
+                const response = await axios.get(`https://api.github.com/repos/${selectedTemplateRepo}/contents`);
+                const templateFolder = response.data.find(item => item.type === 'dir' && item.name === selectedTemplate);
+                if (!templateFolder) {
+                    console.log(`\x1b[31mTemplate folder '${selectedTemplate}' not found in the repository.\x1b[0m`);
+                    process.exit(1);
+                }
+            } catch (err) {
+                console.log(`\x1b[31mError accessing repository: ${err.message}\x1b[0m`);
                 process.exit(1);
             }
 
@@ -76,7 +85,7 @@ interface.input.on('keypress', (str, key) => {
             }
 
             console.log('\x1b[36mCopying files...\x1b[0m');
-            const files = fs.readdirSync(templateFolderPath);
+            const files = fs.readdirSync(path.join(currentPath, selectedTemplate));
             const progressBarWidth = 50;
             let progress = 0;
             const progressBarInterval = setInterval(() => {
@@ -89,7 +98,7 @@ interface.input.on('keypress', (str, key) => {
 
                     // Start dependency installation
                     try {
-                        execSync(`cp -r ${templateFolderPath}/* ${projectPath}`);
+                        execSync(`cp -r ${selectedTemplate}/* ${projectPath}`);
                         process.chdir(projectPath);
 
                         const dependencies = ['dependency1', 'dependency2']; // Add your dependencies here

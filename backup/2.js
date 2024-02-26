@@ -7,9 +7,9 @@ const axios = require('axios');
 
 // Define the GitHub repository URL for each template
 const templatesPath = {
-    react: "https://github.com/Craftech360-projects/cft-hq.git",
-    node_express: "https://github.com/Craftech360-projects/cft-hq.git",
-    electron: "https://github.com/Craftech360-projects/cft-hq.git"
+    react: "Craftech360-projects/cft-hq",
+    node_express: "Craftech360-projects/cft-hq",
+    electron: "Craftech360-projects/cft-hq"
 };
 
 const colors = ['\x1b[32m', '\x1b[31m', '\x1b[34m'];
@@ -60,12 +60,16 @@ interface.input.on('keypress', (str, key) => {
             const currentPath = process.cwd();
             const projectPath = path.join(currentPath, projectName);
 
-            // Clone the template repository
-            console.log('\x1b[36mCloning template repository...\x1b[0m');
+            // Check if the template folder exists in the GitHub repository
             try {
-                execSync(`git clone ${selectedTemplateRepo} ${selectedTemplate}`);
+                const response = await axios.get(`https://api.github.com/repos/${selectedTemplateRepo}/contents`);
+                const templateFolder = response.data.find(item => item.type === 'dir' && item.name === selectedTemplate);
+                if (!templateFolder) {
+                    console.log(`\x1b[31mTemplate folder '${selectedTemplate}' not found in the repository.\x1b[0m`);
+                    process.exit(1);
+                }
             } catch (err) {
-                console.log(`\x1b[31mError cloning repository: ${err.message}\x1b[0m`);
+                console.log(`\x1b[31mError accessing repository: ${err.message}\x1b[0m`);
                 process.exit(1);
             }
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const readline = require('readline');
-const axios = require('axios');
+const { execSync } = require('child_process'); // Importing execSync to execute shell commands
+const path = require('path'); // Importing path module to handle file paths
+const fs = require('fs'); // Importing fs module to interact with the file system
+const readline = require('readline'); // Importing readline module to interact with the command line
+const axios = require('axios'); // Importing axios to make HTTP requests
 
 // Define the GitHub repository URL for each template
 const templatesPath = {
@@ -12,14 +12,17 @@ const templatesPath = {
     electron: "https://github.com/Craftech360-projects/node-b.git"
 };
 
+// Define colors for styling console output
 const colors = ['\x1b[32m', '\x1b[31m', '\x1b[34m'];
 
+// Define the names and descriptions of available templates
 const templates = {
     react: "\x1b[91mReact Template\x1b[0m",
     node_express: "\x1b[32mNode.js with Express Template\x1b[0m",
     electron: "\x1b[34mElectron Template\x1b[0m"
 };
 
+// Function to display available templates with colors
 function displayTemplates(selectedIndex) {
     console.clear();
     console.log('Available boilerplate templates:');
@@ -34,16 +37,20 @@ function displayTemplates(selectedIndex) {
     });
 }
 
+// Initialize the selected index for template selection
 let selectedIndex = 0;
 displayTemplates(selectedIndex);
 
+// Create an interface for reading user input from the command line
 const interface = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
+// Flag to track if the readline interface is closed
 let isReadlineClosed = false;
 
+// Event listener for keypress events
 interface.input.on('keypress', (str, key) => {
     if (isReadlineClosed) return;
     if (key.name === 'up') {
@@ -63,7 +70,7 @@ interface.input.on('keypress', (str, key) => {
             // Clone the template repository
             console.log('\x1b[36mCloning template repository...\x1b[0m');
             try {
-                execSync(`git clone ${selectedTemplateRepo} ${selectedTemplate}`);
+                execSync(`git clone ${selectedTemplateRepo} ${projectName}`);
             } catch (err) {
                 console.log(`\x1b[31mError cloning repository: ${err.message}\x1b[0m`);
                 process.exit(1);
@@ -81,7 +88,7 @@ interface.input.on('keypress', (str, key) => {
             }
 
             console.log('\x1b[36mCopying files...\x1b[0m');
-            const files = fs.readdirSync(path.join(currentPath, selectedTemplate));
+            const files = fs.readdirSync(projectName);
             const progressBarWidth = 50;
             let progress = 0;
             const progressBarInterval = setInterval(() => {
@@ -94,24 +101,15 @@ interface.input.on('keypress', (str, key) => {
 
                     // Start dependency installation
                     try {
-                        execSync(`cp -r ${selectedTemplate}/* ${projectPath}`);
                         process.chdir(projectPath);
-
-                        const dependencies = ['dependency1', 'dependency2']; // Add your dependencies here
-                        const dependenciesTotal = dependencies.length;
-                        let dependenciesInstalled = 0;
-                        const dependenciesProgressBarInterval = setInterval(() => {
-                            process.stdout.write(`\r[${'='.repeat(dependenciesInstalled)}${' '.repeat(dependenciesTotal - dependenciesInstalled)}] ${Math.floor((dependenciesInstalled / dependenciesTotal) * 100)}%`);
-                            dependenciesInstalled++;
-                            if (dependenciesInstalled >= dependenciesTotal) {
-                                clearInterval(dependenciesProgressBarInterval);
-                                console.log('\n\x1b[32m✔ Dependencies installed successfully!\x1b[0m');
-                                console.log('\x1b[32mThe installation is done, your project is ready to use!\x1b[0m');
-                                interface.close();
-                            }
-                        }, 1000);
+                        console.log('\x1b[36mInstalling dependencies...\x1b[0m');
+                        execSync('npm install', { stdio: 'inherit' }); // For npm
+                        console.log('\x1b[32m✔ Dependencies installed successfully!\x1b[0m');
+                        console.log('\x1b[32mThe installation is done, your project is ready to use!\x1b[0m');
+                        interface.close();
                     } catch (error) {
-                        console.log(error);
+                        console.log('\x1b[31mError installing dependencies:\x1b[0m', error);
+                        process.exit(1);
                     }
                 }
             }, 100);
@@ -119,6 +117,7 @@ interface.input.on('keypress', (str, key) => {
     }
 });
 
+// Enable raw mode for the input stream
 interface.input.setRawMode(true);
+// Resume the input stream
 interface.input.resume();
-

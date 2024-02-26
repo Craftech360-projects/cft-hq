@@ -1,25 +1,26 @@
 #!/usr/bin/env node
+// Import required modules
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const readline = require('readline');
 const axios = require('axios');
 
-// Define the GitHub repository URL for each template
-const templatesPath = {
-    react: "https://github.com/Craftech360-projects/react-boilerplate.git",
-    node_express: "https://github.com/Craftech360-projects/node-b.git",
-    electron: "https://github.com/Craftech360-projects/node-b.git"
-};
+// Define the GitHub repository URL and template folders
+const repoUrl = "Craftech360-projects/cft-hq";
+const templateFolders = ['react', 'express', 'electron'];
 
+// Define colors for console output
 const colors = ['\x1b[32m', '\x1b[31m', '\x1b[34m'];
 
+// Define template names with corresponding colors
 const templates = {
     react: "\x1b[91mReact Template\x1b[0m",
-    node_express: "\x1b[32mNode.js with Express Template\x1b[0m",
+    express: "\x1b[32mNode.js with Express Template\x1b[0m",
     electron: "\x1b[34mElectron Template\x1b[0m"
 };
 
+// Function to display available templates
 function displayTemplates(selectedIndex) {
     console.clear();
     console.log('Available boilerplate templates:');
@@ -34,16 +35,20 @@ function displayTemplates(selectedIndex) {
     });
 }
 
+// Initialize selected template index
 let selectedIndex = 0;
 displayTemplates(selectedIndex);
 
+// Create readline interface for user input
 const interface = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
+// Variable to track if readline interface is closed
 let isReadlineClosed = false;
 
+// Listen for keypress events
 interface.input.on('keypress', (str, key) => {
     if (isReadlineClosed) return;
     if (key.name === 'up') {
@@ -56,27 +61,31 @@ interface.input.on('keypress', (str, key) => {
         isReadlineClosed = true;
         const selectedTemplate = Object.keys(templates)[selectedIndex];
         interface.question('\x1b[34mEnter a name for your project: \x1b[0m', async (projectName) => {
-            const selectedTemplateRepo = templatesPath[selectedTemplate];
             const currentPath = process.cwd();
             const projectPath = path.join(currentPath, projectName);
 
-            // Clone the template repository
-            console.log('\x1b[36mCloning template repository...\x1b[0m');
+            // Fetch the contents of the repository
             try {
-                execSync(`git clone ${selectedTemplateRepo} ${selectedTemplate}`);
-            } catch (err) {
-                console.log(`\x1b[31mError cloning repository: ${err.message}\x1b[0m`);
-                process.exit(1);
-            }
-
-            try {
-                fs.mkdirSync(projectPath);
-            } catch (err) {
-                if (err.code === 'EEXIST') {
-                    console.log(`\x1b[31mThe file ${projectName} already exists in the current directory. Please give it another name.\x1b[0m`);
-                } else {
-                    console.log(err);
+                const response = await axios.get(`https://api.github.com/repos/${repoUrl}/contents`);
+                const templateFiles = response.data.filter(item => templateFolders.includes(item.name) && item.type === 'dir');
+                if (templateFiles.length !== templateFolders.length) {
+                    console.log('\x1b[31mNot all template folders are available in the repository.\x1b[0m');
+                    process.exit(1);
                 }
+                
+                // Clone each template folder
+                templateFiles.forEach(async (templateFolder) => {
+                    const templateFolderUrl = templateFolder.git_url;
+                    console.log(`\x1b[36mCloning ${templateFolder.name} template...\x1b[0m`);
+                    try {
+                        execSync(`git clone ${templateFolderUrl} ${templateFolder.name}`, { cwd: currentPath });
+                    } catch (err) {
+                        console.log(`\x1b[31mError cloning ${templateFolder.name} template: ${err.message}\x1b[0m`);
+                        process.exit(1);
+                    }
+                });
+            } catch (err) {
+                console.log(`\x1b[31mError accessing repository: ${err.message}\x1b[0m`);
                 process.exit(1);
             }
 
@@ -119,6 +128,6 @@ interface.input.on('keypress', (str, key) => {
     }
 });
 
+// Set input mode to raw and resume input
 interface.input.setRawMode(true);
 interface.input.resume();
-
